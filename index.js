@@ -5,6 +5,7 @@ const port = 3000 // 3000번 port로 연결
 const cookieParser = require('cookie-parser');
 const config = require('./config/key');
 const {User} = require('./models/User');
+const {auth} = require('./middleware/auth');
 
 // MongoDB에 연결
 const mongoose = require('mongoose')
@@ -23,7 +24,7 @@ app.get('/', (req, res) => {
 })
 
 // signUp
-app.post('/register', (req, res) => {
+app.post('/api/users/register', (req, res) => {
     const user = new User(req.body);
     user.save((err, doc) => {
         if(err) return res.json({success: false, err})
@@ -32,7 +33,7 @@ app.post('/register', (req, res) => {
 })
 
 //signIn
-app.post('/login', (req, res) => {
+app.post('/api/users/login', (req, res) => {
     User.findOne({ email: req.body.email}, (err, user) => {
         if(!user) {
             return res.json({
@@ -57,6 +58,32 @@ app.post('/login', (req, res) => {
                 })
             })
         })
+    })
+})
+
+// auth
+app.get('/api/users/auth', auth, (req, res) => {
+    res.status(200).json({
+        _id: req.user._id,
+        isAdmin: req.user.role === 0 ? false : true,
+        isAuth: true,
+        email: req.user.email,
+        name: req.user.name,
+        lastname: req.user.lastname,
+        role: req.user.role,
+        image: req.user.image
+    })
+})
+
+// signOut
+app.get('/api/users/logout', auth, (req, res) => {
+    User.findOneAndUpdate({ _id: req.user._id }, { token: "" }, (err, user) => {
+        if(err) return res.json({
+            success: false, err
+        });
+        return res.status(200).send({
+            success: true
+        });
     })
 })
 
